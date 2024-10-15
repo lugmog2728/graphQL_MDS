@@ -84,6 +84,17 @@ const typeDefs = `#graphql
         musiqueId: Int!
     }
 
+    input AddPlaylistToUserInput {
+        userId: Int!
+        playlistId: Int!
+    }
+
+    input DeleteMusicFromPlaylist {
+        playlistId: Int!
+        musiqueId: Int!
+    }
+
+
     type Mutation {
         createUser(input: CreateUserInput!): User!
         createArtist(input: CreateArtistInput!): Artist!
@@ -92,6 +103,8 @@ const typeDefs = `#graphql
         createPlaylist(input: CreatePlaylistInput!): Playlist!
         addMusicToPlaylist(input: AddMusicToPlaylistInput!): Playlist!
         addMusicToAlbum(input: AddMusicToAlbumInput!): Album!
+        addPlaylistToUser(input: AddPlaylistToUserInput!): User!
+        deleteMusicFromPlaylist(input: DeleteMusicFromPlaylist): Playlist!
     }
 
     type Query {
@@ -241,6 +254,28 @@ const resolvers = {
                 data: {
                     musiques: {
                         connect: { id: musiqueId },
+                    },
+                },
+            });
+        },
+        addPlaylistToUser: async (_, { input }) => {
+            const { playlistId, userId } = input;
+            return await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    playlists: {
+                        connect: { id: playlistId },
+                    },
+                },
+            });
+        },
+        deleteMusicFromPlaylist: async (_, { input }) => {
+            const { playlistId, musiqueId } = input;
+            return await prisma.playlist.update({
+                where: { id: playlistId },
+                data: {
+                    musiques: {
+                        disconnect: { id: musiqueId },
                     },
                 },
             });
