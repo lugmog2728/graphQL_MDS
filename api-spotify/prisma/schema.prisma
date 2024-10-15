@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// schema.prisma
+
+model Artist {
+    id      Int      @id @default(autoincrement())
+    name    String
+    albums  Album[]  @relation("ArtistAlbums")
+    musiques Musique[] @relation("ArtistMusiques")
+}
+
+model Album {
+    id      Int      @id @default(autoincrement())
+    title   String
+    artist  Artist   @relation("ArtistAlbums", fields: [artistId], references: [id])
+    artistId Int
+    musiques Musique[] @relation("AlbumMusiques")
+}
+
+model Musique {
+    id      Int      @id @default(autoincrement())
+    title   String
+    duree   Int      // Durée en secondes
+    album   Album    @relation("AlbumMusiques", fields: [albumId], references: [id])
+    albumId Int
+    artist  Artist   @relation("ArtistMusiques", fields: [artistId], references: [id])
+    artistId Int
+    Playlist Playlist[] @relation("PlaylistMusiques")
+}
+
+model Playlist {
+    id        Int      @id @default(autoincrement())
+    name      String
+    description String?
+    musiques  Musique[] @relation("PlaylistMusiques")
+    createdBy User      @relation(fields: [createdById], references: [id])
+    createdById Int
+    createdAt DateTime @default(now())
+    User User[] @relation("UserPlaylists")
+}
+
+model User {
+    id        Int      @id @default(autoincrement())
+    username  String
+    email     String   @unique
+    playlists  Playlist[] @relation("UserPlaylists")
+    Playlist Playlist[]
+}
