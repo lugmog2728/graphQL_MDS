@@ -46,6 +46,47 @@ const typeDefs = `#graphql
         playlists: [Playlist!]!
     }
 
+    input CreateUserInput {
+        username: String!
+        email: String!
+    }
+
+    input CreateArtistInput {
+        name: String!
+    }
+
+    input CreateMusiqueInput {
+        title: String!
+        duree: Int!
+        albumId: Int!
+        artistId: Int!
+    }
+
+    input CreateAlbumInput {
+        title: String!
+        artistId: Int!
+    }
+
+    input CreatePlaylistInput {
+        name: String!
+        description: String
+        createdById: Int!
+    }
+
+    input AddMusicToPlaylistInput {
+        playlistId: Int!
+        musiqueId: Int!
+    }
+
+    type Mutation {
+        createUser(input: CreateUserInput!): User!
+        createArtist(input: CreateArtistInput!): Artist!
+        createMusique(input: CreateMusiqueInput!): Musique!
+        createAlbum(input: CreateAlbumInput!): Album!
+        createPlaylist(input: CreatePlaylistInput!): Playlist!
+        addMusicToPlaylist(input: AddMusicToPlaylistInput!): Playlist!
+    }
+
     type Query {
         artists: [Artist!]!
         albums: [Album!]!
@@ -86,11 +127,63 @@ const resolvers = {
         artist: ({ artistId }) => prisma.artist.findUnique({ where: { id: artistId } }), // Correction ici
     },
     Playlist: {
-        musiques: ({ id }) => prisma.musique.findMany({ where: { id: id } }),
+       // musiques: async ({ id }) => (await prisma.playlist.findUnique({ where: { id: id }, include:{musiques: true}})).musiques,
+        musiques: ({ id }) => prisma.musique.findMany({ where: { playlists: { some: { id } }}}),
         createdBy: ({ createdById }) => prisma.user.findUnique({ where: { id: createdById }}), // Correction ici
     },
     User: {
         playlists: ({ id }) => prisma.playlist.findMany({ where: { createdById: id } }),
+    },
+
+    Mutation: {
+        createArtist: async (_, { input }) => {
+            return prisma.artist.create({
+                data: {
+                    name: input.name,
+                },
+            });
+        },
+        createMusique: async (_, { input }) => {
+            return prisma.musique.create({
+                data: {
+                    title: input.title,
+                    duree: input.duree,
+                    albumId: input.albumId,
+                    artistId: input.artistId,
+                },
+            });
+        },
+        createAlbum: async (_, { input }) => {
+            return prisma.album.create({
+                data: {
+                    title: input.title,
+                    artistId: input.artistId,
+                },
+            });
+        },
+        createPlaylist: async (_, { input }) => {
+            return prisma.playlist.create({
+                data: {
+                    name: input.name,
+                    description: input.description,
+                    createdById: input.createdById,
+                    createdAt: new Date(),
+                },
+            });
+        },
+        addMusicToPlaylist: async (_, { input }) => {
+            const { playlistId, musiqueId } = input;
+
+            // Ajoute la musique à la playlist
+            return await prisma.playlist.update({
+                where: { id: playlistId },
+                data: {
+                    musiques: {
+                        connect: { id: musiqueId },
+                    },
+                },
+            });
+        },
     },
 };
 

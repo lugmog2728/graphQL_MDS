@@ -37,7 +37,7 @@ model Musique {
     albumId Int
     artist  Artist   @relation("ArtistMusiques", fields: [artistId], references: [id])
     artistId Int
-    Playlist Playlist[] @relation("PlaylistMusiques")
+    playlists Playlist[] @relation("PlaylistMusiques")
 }
 
 model Playlist {
