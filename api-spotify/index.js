@@ -1,6 +1,7 @@
 import { ApolloServer } from '@apollo/server'; // preserve-line
 import { startStandaloneServer } from '@apollo/server/standalone'; // preserve-line
 import { PrismaClient } from '@prisma/client';
+import DataLoader from 'dataloader';
 
 const prisma = new PrismaClient(); // Initialize Prisma Client
 
@@ -78,6 +79,11 @@ const typeDefs = `#graphql
         musiqueId: Int!
     }
 
+    input AddMusicToAlbumInput {
+        albumId: Int!
+        musiqueId: Int!
+    }
+
     type Mutation {
         createUser(input: CreateUserInput!): User!
         createArtist(input: CreateArtistInput!): Artist!
@@ -85,6 +91,7 @@ const typeDefs = `#graphql
         createAlbum(input: CreateAlbumInput!): Album!
         createPlaylist(input: CreatePlaylistInput!): Playlist!
         addMusicToPlaylist(input: AddMusicToPlaylistInput!): Playlist!
+        addMusicToAlbum(input: AddMusicToAlbumInput!): Album!
     }
 
     type Query {
@@ -101,6 +108,51 @@ const typeDefs = `#graphql
     }
 `;
 
+const artistLoader = new DataLoader(async (ids) => {
+    const artists = await prisma.artist.findMany({
+        where: {
+            id: { in: ids }
+        }
+    });
+    return ids.map(id => artists.find(artist => artist.id === id));
+});
+
+const albumLoader = new DataLoader(async (ids) => {
+    const albums = await prisma.album.findMany({
+        where: {
+            id: { in: ids }
+        }
+    });
+    return ids.map(id => albums.find(album => album.id === id));
+});
+
+const musiqueLoader = new DataLoader(async (ids) => {
+    const musiques = await prisma.musique.findMany({
+        where: {
+            id: { in: ids }
+        }
+    });
+    return ids.map(id => musiques.find(musique => musique.id === id));
+});
+
+const playlistLoader = new DataLoader(async (ids) => {
+    const playlists = await prisma.playlist.findMany({
+        where: {
+            id: { in: ids }
+        }
+    });
+    return ids.map(id => playlists.find(playlist => playlist.id === id));
+});
+
+const userLoader = new DataLoader(async (ids) => {
+    const users = await prisma.user.findMany({
+        where: {
+            id: { in: ids }
+        }
+    });
+    return ids.map(id => users.find(user => user.id === id));
+});
+
 const resolvers = {
     Query: {
         artists: () => prisma.artist.findMany(),
@@ -108,11 +160,11 @@ const resolvers = {
         musiques: () => prisma.musique.findMany(),
         playlists: () => prisma.playlist.findMany(),
         users: () => prisma.user.findMany(),
-        artistById: (_, { id }) => prisma.artist.findUnique({ where: { id } }),
-        albumById: (_, { id }) => prisma.album.findUnique({ where: { id } }),
-        musiqueById: (_, { id }) => prisma.musique.findUnique({ where: { id } }),
-        playlistById: (_, { id }) => prisma.playlist.findUnique({ where: { id } }),
-        userById: (_, { id }) => prisma.user.findUnique({ where: { id } }),
+        artistById: (_, { id }) => artistLoader.load(id),
+        albumById: (_, { id }) => albumLoader.load(id),
+        musiqueById: (_, { id }) => musiqueLoader.load(id),
+        playlistById: (_, { id }) => playlistLoader.load(id),
+        userById: (_, { id }) => userLoader.load(id),
     },
     Artist: {
         albums: ({ id }) => prisma.album.findMany({ where: { artistId: id } }),
@@ -173,8 +225,6 @@ const resolvers = {
         },
         addMusicToPlaylist: async (_, { input }) => {
             const { playlistId, musiqueId } = input;
-
-            // Ajoute la musique à la playlist
             return await prisma.playlist.update({
                 where: { id: playlistId },
                 data: {
@@ -184,6 +234,18 @@ const resolvers = {
                 },
             });
         },
+        addMusicToAlbum: async (_, { input }) => {
+            const { albumId, musiqueId } = input;
+            return await prisma.album.update({
+                where: { id: albumId },
+                data: {
+                    musiques: {
+                        connect: { id: musiqueId },
+                    },
+                },
+            });
+        },
+
     },
 };
 
