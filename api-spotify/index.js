@@ -52,42 +52,48 @@ const typeDefs = `#graphql
         musiques: [Musique!]!
         playlists: [Playlist!]!
         users: [User!]!
+        artistById(id: Int!): Artist 
+        albumById(id: Int!): Album 
+        musiqueById(id: Int!): Musique
+        playlistById(id: Int!): Playlist 
+        userById(id: Int!): User
     }
 `;
 
 const resolvers = {
     Query: {
-        artists: () => prisma.artist.findMany(), 
-        albums: () => prisma.album.findMany(), 
+        artists: () => prisma.artist.findMany(),
+        albums: () => prisma.album.findMany(),
         musiques: () => prisma.musique.findMany(),
-        playlists: () => prisma.playlist.findMany(), 
-        users: () => prisma.user.findMany(), 
+        playlists: () => prisma.playlist.findMany(),
+        users: () => prisma.user.findMany(),
+        artistById: (_, { id }) => prisma.artist.findUnique({ where: { id } }),
+        albumById: (_, { id }) => prisma.album.findUnique({ where: { id } }),
+        musiqueById: (_, { id }) => prisma.musique.findUnique({ where: { id } }),
+        playlistById: (_, { id }) => prisma.playlist.findUnique({ where: { id } }),
+        userById: (_, { id }) => prisma.user.findUnique({ where: { id } }),
     },
-
     Artist: {
-        albums: (parent) => prisma.album.findMany({ where: { artistId: parent.id } }), 
-        musiques: (parent) => prisma.musique.findMany({ where: { artistId: parent.id } }), 
+        albums: ({ id }) => prisma.album.findMany({ where: { artistId: id } }),
+        musiques: ({ id }) => prisma.musique.findMany({ where: { artistId: id } }),
     },
-
     Album: {
-        artist: (parent) => prisma.artist.findUnique({ where: { id: parent.artistId } }), 
-        musiques: (parent) => prisma.musique.findMany({ where: { albumId: parent.id } }), 
+        artist: ({ artistId }) => prisma.artist.findUnique({ where: { id: artistId } }), // Correction ici
+        musiques: ({ id }) => prisma.musique.findMany({ where: { albumId: id } }),
     },
-
     Musique: {
-        album: (parent) => prisma.album.findUnique({ where: { id: parent.albumId } }), 
-        artist: (parent) => prisma.artist.findUnique({ where: { id: parent.artistId } }), 
+        album: ({ albumId }) => prisma.album.findUnique({ where: { id: albumId } }), // Correction ici
+        artist: ({ artistId }) => prisma.artist.findUnique({ where: { id: artistId } }), // Correction ici
     },
-
     Playlist: {
-        musiques: (parent) => prisma.musique.findMany({ where: { playlistId: parent.id } }), 
-        createdBy: (parent) => prisma.user.findUnique({ where: { id: parent.createdById } }),
+        musiques: ({ id }) => prisma.musique.findMany({ where: { id: id } }),
+        createdBy: ({ createdById }) => prisma.user.findUnique({ where: { id: createdById }}), // Correction ici
     },
-
     User: {
-        playlists: (parent) => prisma.playlist.findMany({ where: { createdById: parent.id } }), 
+        playlists: ({ id }) => prisma.playlist.findMany({ where: { createdById: id } }),
     },
 };
+
 
 // The ApolloServer constructor requires two parameters: your schema
 // definition and your set of resolvers.
